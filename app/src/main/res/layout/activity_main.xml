@@ -55,8 +55,7 @@
                 android:id="@+id/time_picker_wake"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:timePickerMode="spinner"
-                android:is24HourView="true" />
+                android:timePickerMode="spinner" />
         </LinearLayout>
 
         <LinearLayout
@@ -78,8 +77,7 @@
                 android:id="@+id/time_picker_sleep"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:timePickerMode="spinner"
-                android:is24HourView="true" />
+                android:timePickerMode="spinner" />
         </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout

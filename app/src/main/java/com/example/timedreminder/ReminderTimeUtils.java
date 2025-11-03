@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +67,14 @@ public final class ReminderTimeUtils {
         return slot.truncatedTo(ChronoUnit.MINUTES).format(SLOT_FORMATTER);
     }
 
-    public static long computeInitialDelayMillis() {
-        return Duration.ofMinutes(1).toMillis();
+    public static LocalDateTime parseSlot(String slotKey) {
+        if (slotKey == null || slotKey.isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(slotKey, SLOT_FORMATTER);
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
     }
 }

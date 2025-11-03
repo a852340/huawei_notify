@@ -8,6 +8,7 @@ import androidx.work.WorkerParameters;
 
 import com.example.timedreminder.NotificationHelper;
 import com.example.timedreminder.ReminderPreferences;
+import com.example.timedreminder.ReminderScheduler;
 import com.example.timedreminder.ReminderTimeUtils;
 
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ import java.time.LocalTime;
 
 public class ReminderWorker extends Worker {
 
+    public static final String KEY_EXPECTED_SLOT = "expected_slot";
     private static final long SLOT_TOLERANCE_MINUTES = 30L;
 
     public ReminderWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
@@ -26,32 +28,51 @@ public class ReminderWorker extends Worker {
     public Result doWork() {
         Context context = getApplicationContext();
 
-        if (!ReminderPreferences.isReminderEnabled(context)) {
+        if (isStopped()) {
             return Result.success();
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalTime wakeTime = ReminderPreferences.getWakeTime(context);
-        LocalTime sleepTime = ReminderPreferences.getSleepTime(context);
+        try {
+            if (!ReminderPreferences.isReminderEnabled(context)) {
+                return Result.success();
+            }
 
-        if (!ReminderTimeUtils.isWithinActiveWindow(now.toLocalTime(), wakeTime, sleepTime)) {
+            LocalDateTime now = LocalDateTime.now();
+            LocalTime wakeTime = ReminderPreferences.getWakeTime(context);
+            LocalTime sleepTime = ReminderPreferences.getSleepTime(context);
+
+            if (!ReminderTimeUtils.isWithinActiveWindow(now.toLocalTime(), wakeTime, sleepTime)) {
+                return Result.success();
+            }
+
+            String expectedSlotKey = getInputData().getString(KEY_EXPECTED_SLOT);
+            LocalDateTime slot = ReminderTimeUtils.parseSlot(expectedSlotKey);
+            if (slot == null) {
+                slot = ReminderTimeUtils.findMostRecentReminderSlot(now);
+            }
+
+            if (!ReminderTimeUtils.isWithinActiveWindow(slot.toLocalTime(), wakeTime, sleepTime)) {
+                return Result.success();
+            }
+
+            if (!ReminderTimeUtils.isWithinTolerance(slot, now, SLOT_TOLERANCE_MINUTES)) {
+                return Result.success();
+            }
+
+            String slotKey = ReminderTimeUtils.formatSlot(slot);
+            if (slotKey.equals(ReminderPreferences.getLastTriggerSlot(context))) {
+                return Result.success();
+            }
+
+            String content = ReminderPreferences.getNotificationContent(context);
+            NotificationHelper.showReminderNotification(context, content);
+            ReminderPreferences.setLastTriggerSlot(context, slotKey);
+
             return Result.success();
+        } finally {
+            if (!isStopped()) {
+                ReminderScheduler.scheduleNext(context);
+            }
         }
-
-        LocalDateTime slot = ReminderTimeUtils.findMostRecentReminderSlot(now);
-        if (!ReminderTimeUtils.isWithinTolerance(slot, now, SLOT_TOLERANCE_MINUTES)) {
-            return Result.success();
-        }
-
-        String slotKey = ReminderTimeUtils.formatSlot(slot);
-        if (slotKey.equals(ReminderPreferences.getLastTriggerSlot(context))) {
-            return Result.success();
-        }
-
-        String content = ReminderPreferences.getNotificationContent(context);
-        NotificationHelper.showReminderNotification(context, content);
-        ReminderPreferences.setLastTriggerSlot(context, slotKey);
-
-        return Result.success();
     }
 }

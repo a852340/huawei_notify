@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">定时提醒</string>
+    <string name="notification_channel_name">定时提醒</string>
+    <string name="notification_channel_description">按设定时间推送提醒，自动同步至手表。</string>
+    <string name="label_wake_time">起床时间</string>
+    <string name="label_sleep_time">睡觉时间</string>
+    <string name="hint_notification_content">提醒内容</string>
+    <string name="default_notification_content">定时提醒</string>
+    <string name="action_save">保存配置</string>
+    <string name="action_test_notification">手动测试推送</string>
+    <string name="action_open_battery_settings">电池优化设置</string>
+    <string name="switch_enable_reminder">启用定时提醒</string>
+    <string name="next_reminder_prefix">下次提醒时间：</string>
+    <string name="next_reminder_disabled">提醒已关闭</string>
+    <string name="next_reminder_unknown">计算中…</string>
+    <string name="toast_saved">配置已保存</string>
+    <string name="toast_permission_denied">权限被拒绝，无法启用提醒</string>
+    <string name="toast_test_sent">测试通知已发送</string>
+    <string name="dialog_battery_title">保持提醒稳定运行</string>
+    <string name="dialog_battery_message">为确保定时提醒在后台正常触发，请将应用加入电池优化白名单。</string>
+    <string name="dialog_positive">前往设置</string>
+    <string name="dialog_negative">稍后</string>
+    <string name="notification_permission_rationale">开启通知权限以接收定时提醒。</string>
+    <string name="permission_status_template">通知权限：%1$s  |  电池优化：%2$s</string>
+    <string name="permission_status_initial">通知权限：--  |  电池优化：--</string>
+    <string name="permission_status_on">已开启</string>
+    <string name="permission_status_off">未开启</string>
+    <string name="dialog_notification_title">需要通知权限</string>
+    <string name="dialog_notification_message">请授予通知权限或在系统设置中打开，才能发送定时提醒。</string>
+    <string name="dialog_settings">前往设置</string>
+</resources>

@@ -22,11 +22,13 @@
     <string name="dialog_positive">前往设置</string>
     <string name="dialog_negative">稍后</string>
     <string name="notification_permission_rationale">开启通知权限以接收定时提醒。</string>
-    <string name="permission_status_template">通知权限：%1$s  |  电池优化：%2$s</string>
-    <string name="permission_status_initial">通知权限：--  |  电池优化：--</string>
+    <string name="permission_status_template">通知权限：%1$s  |  电池优化：%2$s  |  精准提醒：%3$s</string>
+    <string name="permission_status_initial">通知权限：--  |  电池优化：--  |  精准提醒：--</string>
     <string name="permission_status_on">已开启</string>
     <string name="permission_status_off">未开启</string>
     <string name="dialog_notification_title">需要通知权限</string>
     <string name="dialog_notification_message">请授予通知权限或在系统设置中打开，才能发送定时提醒。</string>
     <string name="dialog_settings">前往设置</string>
+    <string name="dialog_exact_alarm_title">需要精准提醒权限</string>
+    <string name="dialog_exact_alarm_message">为确保锁屏状态下准时提醒，请在系统设置中允许应用使用精准提醒权限。</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.example.timedreminder;
 
 import android.Manifest;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -42,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean internalSwitchChange = false;
     private boolean pendingEnableAfterPermission = false;
+    private boolean pendingEnableAfterExactAlarm = false;
     private boolean pendingTestNotification = false;
 
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.getDefault());
@@ -63,6 +65,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (pendingEnableAfterExactAlarm && canScheduleExactAlarms()) {
+            pendingEnableAfterExactAlarm = false;
+            ReminderPreferences.setReminderEnabled(this, true);
+            setSwitchChecked(true);
+            ReminderScheduler.schedule(this);
+            maybePromptForBatteryOptimization();
+        }
         updatePermissionStatus();
         updateNextReminderStatus();
     }
@@ -115,15 +124,26 @@ public class MainActivity extends AppCompatActivity {
         if (enable) {
             if (!NotificationHelper.hasNotificationPermission(this)) {
                 pendingEnableAfterPermission = true;
+                setSwitchChecked(false);
                 requestNotificationPermission();
+                return;
+            }
+            if (!canScheduleExactAlarms()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    pendingEnableAfterExactAlarm = true;
+                    requestExactAlarmPermission();
+                }
                 setSwitchChecked(false);
                 return;
             }
+            pendingEnableAfterPermission = false;
+            pendingEnableAfterExactAlarm = false;
             ReminderPreferences.setReminderEnabled(this, true);
             ReminderScheduler.schedule(this);
             maybePromptForBatteryOptimization();
         } else {
             pendingEnableAfterPermission = false;
+            pendingEnableAfterExactAlarm = false;
             ReminderPreferences.setReminderEnabled(this, false);
             ReminderScheduler.cancel(this);
         }
@@ -208,7 +228,11 @@ public class MainActivity extends AppCompatActivity {
                 ? getString(R.string.permission_status_on)
                 : getString(R.string.permission_status_off);
 
-        permissionStatusText.setText(getString(R.string.permission_status_template, notificationStatus, batteryStatus));
+        String exactAlarmStatus = canScheduleExactAlarms()
+                ? getString(R.string.permission_status_on)
+                : getString(R.string.permission_status_off);
+
+        permissionStatusText.setText(getString(R.string.permission_status_template, notificationStatus, batteryStatus, exactAlarmStatus));
     }
 
     private void requestNotificationPermission() {
@@ -242,6 +266,49 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.dialog_settings, (dialog, which) -> NotificationHelper.requestSystemNotificationSettings(this))
                 .setNegativeButton(R.string.dialog_negative, (dialog, which) -> dialog.dismiss())
                 .show();
+    }
+
+    private boolean canScheduleExactAlarms() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return true;
+        }
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        return alarmManager != null && alarmManager.canScheduleExactAlarms();
+    }
+
+    private void requestExactAlarmPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_exact_alarm_title)
+                .setMessage(R.string.dialog_exact_alarm_message)
+                .setPositiveButton(R.string.dialog_settings, (dialog, which) -> openExactAlarmSettings())
+                .setNegativeButton(R.string.dialog_negative, (dialog, which) -> {
+                    pendingEnableAfterExactAlarm = false;
+                    dialog.dismiss();
+                })
+                .show();
+    }
+
+    private void openExactAlarmSettings() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return;
+        }
+        Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+        intent.setData(Uri.parse("package:" + getPackageName()));
+        try {
+            startActivity(intent);
+        } catch (Exception exception) {
+            Intent fallback = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            fallback.setData(Uri.parse("package:" + getPackageName()));
+            try {
+                startActivity(fallback);
+            } catch (Exception ignored) {
+                pendingEnableAfterExactAlarm = false;
+                Toast.makeText(this, R.string.permission_status_off, Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private void maybePromptForBatteryOptimization() {
@@ -298,11 +365,20 @@ public class MainActivity extends AppCompatActivity {
                 updatePermissionStatus();
                 if (pendingEnableAfterPermission) {
                     pendingEnableAfterPermission = false;
-                    ReminderPreferences.setReminderEnabled(this, true);
-                    setSwitchChecked(true);
-                    ReminderScheduler.schedule(this);
-                    updateNextReminderStatus();
-                    maybePromptForBatteryOptimization();
+                    if (!canScheduleExactAlarms()) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            pendingEnableAfterExactAlarm = true;
+                            requestExactAlarmPermission();
+                        }
+                        setSwitchChecked(false);
+                    } else {
+                        pendingEnableAfterExactAlarm = false;
+                        ReminderPreferences.setReminderEnabled(this, true);
+                        setSwitchChecked(true);
+                        ReminderScheduler.schedule(this);
+                        updateNextReminderStatus();
+                        maybePromptForBatteryOptimization();
+                    }
                 }
                 if (pendingTestNotification) {
                     pendingTestNotification = false;
@@ -311,6 +387,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             } else {
                 pendingEnableAfterPermission = false;
+                pendingEnableAfterExactAlarm = false;
                 pendingTestNotification = false;
                 updatePermissionStatus();
                 Toast.makeText(this, R.string.toast_permission_denied, Toast.LENGTH_SHORT).show();
